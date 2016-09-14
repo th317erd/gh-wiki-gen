@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+
+var path = require('path'),
+		janap = require('janap'),
+		wg = require('../index.js')();
+
+var options = janap.parse(process.argv, {
+			_alias: {
+				extension: "extensions"
+			},
+			extensions: Array,
+			include: Array,
+			exclude: Array
+		});
+
+if (!options.path)
+	options.path = path.resolve();
+
+var parser = new wg.Parser(options);
+parser.parse();
