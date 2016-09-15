@@ -13,8 +13,11 @@ var options = janap.parse(process.argv, {
 			exclude: Array
 		});
 
-if (!options.path)
-	options.path = path.resolve();
+if (options.inputPath)
+	options.inputPath = path.resolve(options.inputPath);
+
+if (options.outputPath)
+	options.outputPath = path.resolve(options.outputPath);
 
 var parser = new wg.Parser(options);
 parser.parse();
