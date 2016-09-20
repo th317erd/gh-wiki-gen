@@ -1,9 +1,11 @@
 {
   "name": "gh-wiki-gen",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Auto generate documentation for GitHub wiki",
   "main": "index.js",
-  "bin": { "gh-wiki-gen": "./bin/gh-wiki-gen" },
+  "bin": {
+    "gh-wiki-gen": "./bin/gh-wiki-gen"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
