@@ -19,5 +19,7 @@ if (options.inputPath)
 if (options.outputPath)
 	options.outputPath = path.resolve(options.outputPath);
 
+options.parser = '../parsers/default';
+
 var parser = new wg.Parser(options);
 parser.parse();

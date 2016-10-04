@@ -4,6 +4,6 @@
 		return factory({}, D);
 	};
 })(function(root, D) {
-	require('./lib/parse')(root, D);
+	require('./lib/runner')(root, D);
 	return root;
 });
