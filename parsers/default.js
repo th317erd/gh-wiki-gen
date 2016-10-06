@@ -16,10 +16,9 @@
 						if (context.type === 'type' && context.name === type)
 							return true;
 					}, function() {
-						this.inherit('name', 'desc');
+						this.inherit('name', 'desc', 'note');
 
-						if (type)
-							this.run('name', type);
+						this.run('name', type);
 
 						if (desc)
 							this.run('desc', desc);
@@ -29,18 +28,46 @@
 					}));
 				}
 
+				function classFieldCommands() {
+					this.command('const', function() {
+						this.constant = true;
+					});
+
+					this.command('static', function() {
+						this.static = true;
+					});
+
+					this.command('public', function() {
+						this.visibility = 'public';
+					});
+
+					this.command('protected', function() {
+						this.visibility = 'protected';
+					});
+
+					this.command('private', function() {
+						this.visibility = 'private';
+					});
+
+					this.visibility = 'protected';
+				}
+
 				this.command('namespace', function(name) {
 					return this.appendTo('properties', this.newContext(function() {
-						this.inherit('name', 'desc', 'namespace', 'class', 'function', 'property', 'alias', 'see');
+						this.inherit('name', 'desc', 'namespace', 'class', 'function', 'property', 'alias', 'see', 'note');
 
 						if (name)
 							this.run('name', name);
 					}));
 				});
 
-				this.command('class', function(name) {
+				this.command('class', function(name, desc) {
 					return this.appendTo('properties', this.newContext(function() {
-						this.inherit('name', 'class', 'desc', 'example', 'function', 'alias', 'see');
+						this.inherit('name', 'class', 'desc', 'example', 'function', 'alias', 'see', 'note');
+
+						classFieldCommands.call(this);
+						if (this.parent && this.parent.type === 'namespace' || this.parent.type === 'global')
+							this.visibility = 'public';
 
 						this.command('constructor', function() {
 							var context = this.invoke('function', 'constructor');
@@ -48,10 +75,11 @@
 							return context;
 						});
 
-						if (name)
-							this.run('name', name);
+						this.run('name', name);
+						this.run('desc', desc);
 					}));
 				});
+				this.alias('class', 'struct');
 
 				this.command('alias', function(path) {
 					var type = D.utils.extract(path, /^(\w+):/, 1);
@@ -72,7 +100,7 @@
 
 					return this.appendTo(subKey, this.newContext(function(path) {
 						this.inherit('see');
-						
+
 						if (type)
 							this.subType = type;
 						this.path = path;
@@ -88,15 +116,17 @@
 					if (arguments.length === 2) {
 						desc = name;
 						name = type;
+						type = null;
 					} else if (arguments.length === 1) {
 						name = type;
+						type = null;
 					}
 
-					return this.appendTo('parameters', this.getContext('parameters', function(context) {
+					var context = this.appendTo('parameters', this.getContext('parameters', function(context) {
 						if (context.type === 'parameter' && context.name === name)
 							return true;
 					}, function() {
-						this.inherit('name', 'desc');
+						this.inherit('name', 'desc', 'note');
 
 						this.command('type', typeCommand);
 
@@ -115,24 +145,27 @@
 							name = name.trim().replace(/^\[([^\]]+)\]$/, function(m, p1) {
 								self.optional = true;
 								return p1;
-							});
+							}).replace(/=(.*)$/g, function(m, p1) {
+								self.default = p1;
+								return '';
+							});;
 
 							this.run('name', name);
 						}
 
-						var context = this;
-						if (type)
-							context = this.run('type', type);
-
-						if (desc)
-							context.run('desc', desc);
+						//this.run('desc', desc);
 					}));
+
+					if (type)
+						context.run('type', type, desc);
+
+					return context;
 				});
 				this.alias('parameter', 'param');
 
 				this.command('return', function() {
 					return this.set('returns', this.newContext(function(type, desc) {
-						this.inherit('desc');
+						this.inherit('desc', 'note');
 
 						this.command('type', typeCommand);
 
@@ -157,40 +190,54 @@
 					}));
 				});
 
-				this.command('function', function(name) {
+				this.command('function', function(name, desc) {
 					function contextFunc() {
-						this.inherit('name', 'parameter', 'param', 'return', 'returns', 'desc', 'example', 'see');
+						this.inherit('name', 'parameter', 'return', 'desc', 'example', 'see', 'note');
 
-						if (name)
-							this.run('name', name);
+						classFieldCommands.call(this);
+
+						this.run('name', name);
+						this.run('desc', desc);
 					}
 
-					if (this.hasOwnProperty('type') && (this.name).toLowerCase() === 'function')
+					if (this.hasOwnProperty('type') && this.type === 'type' && (this.name).toLowerCase() === 'function') {
+						this.visibility = 'public';
 						return contextFunc.apply(this, arguments);
+					}
 
 					return this.appendTo('functions', this.newContext(contextFunc));
 				});
 
-				this.command('object', function(name) {
+				this.command('object', function(name, desc) {
 					function contextFunc() {
-						this.inherit('name', 'desc', 'property', 'see');
+						this.inherit('name', 'desc', 'property', 'see', 'note');
 
-						if (name)
-							this.run('name', name);
+						classFieldCommands.call(this);
+						this.visibility = 'public';
+
+						this.run('name', name);
+						this.run('desc', desc);
 					}
 
-					if (this.hasOwnProperty('type') && (this.name).toLowerCase() === 'object')
+					if (this.hasOwnProperty('type') && this.type === 'type' && (this.name).toLowerCase() === 'object') {
+						this.visibility = 'public';
 						return contextFunc.apply(this, arguments);
+					}
 
 					return this.appendTo('properties', this.newContext(contextFunc));
 				});
 
-				this.command('property', function(name, desc) {
+				this.command('property', function(_name, desc) {
+					var name = _name;
 					return this.appendTo('properties', this.getContext('properties', function(context) {
 						if (context.type === 'property' && context.name === name)
 							return true;
 					}, function() {
-						this.inherit('name', 'desc');
+						this.inherit('name', 'desc', 'note');
+
+						classFieldCommands.call(this);
+						if (this.parent && this.parent.type === 'type' || this.parent.type === 'object')
+							this.visibility = 'public';
 
 						this.command('type', typeCommand);
 
@@ -198,8 +245,15 @@
 							this.default = value;
 						});
 
-						if (name)
+						if (name) {
+							var self = this;
+							name = name.replace(/=(.*)$/g, function(m, p1) {
+								self.default = p1;
+								return '';
+							});
+
 							this.run('name', name);
+						}
 
 						if (desc)
 							this.run('desc', desc);
