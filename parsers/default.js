@@ -1,15 +1,15 @@
 (function(factory) {
-	module.exports = function(options, parser, D) {
-		var constructorFunc = factory(parser, D);
+	module.exports = function(options, base, D) {
+		var constructorFunc = factory(base, D);
 		return new constructorFunc(options);
 	};
-})(function(parser, D) {
-	function DefaultParser() {
-		parser.DocParser.call(this);
+})(function(base, D) {
+	function DefaultContext() {
+		base.call(this);
 	}
 
-	DefaultParser.prototype = D.data.extend(Object.create(parser.DocParser.prototype), {
-		createGlobalContext: function() {
+	DefaultContext.prototype = D.data.extend(Object.create(base.prototype), {
+		createRootContext: function() {
 			function buildContext() {
 				function typeCommand(type, desc) {
 					return this.appendTo('types', this.getContext('types', function(context) {
@@ -55,6 +55,9 @@
 				this.command('namespace', function(name) {
 					return this.appendTo('properties', this.newContext(function() {
 						this.inherit('name', 'desc', 'namespace', 'class', 'function', 'property', 'alias', 'see', 'note');
+						
+						this.functions = [];
+						this.properties = [];
 
 						if (name)
 							this.run('name', name);
@@ -63,7 +66,10 @@
 
 				this.command('class', function(name, desc) {
 					return this.appendTo('properties', this.newContext(function() {
-						this.inherit('name', 'class', 'desc', 'example', 'function', 'alias', 'see', 'note');
+						this.inherit('name', 'class', 'desc', 'example', 'function', 'alias', 'see', 'note', 'property');
+
+						this.functions = [];
+						this.properties = [];
 
 						classFieldCommands.call(this);
 						if (this.parent && this.parent.type === 'namespace' || this.parent.type === 'global')
@@ -81,7 +87,7 @@
 				});
 				this.alias('class', 'struct');
 
-				this.command('alias', function(path) {
+				this.command('alias', function(name, path) {
 					var type = D.utils.extract(path, /^(\w+):/, 1);
 
 					if (!type) {
@@ -98,8 +104,10 @@
 							subKey = 'properties';
 					}
 
-					return this.appendTo(subKey, this.newContext(function(path) {
-						this.inherit('see');
+					return this.appendTo(subKey, this.newContext(function(name, path) {
+						this.inherit('see', 'name');
+
+						this.run('name', name);
 
 						if (type)
 							this.subType = type;
@@ -148,7 +156,7 @@
 							}).replace(/=(.*)$/g, function(m, p1) {
 								self.default = p1;
 								return '';
-							});;
+							});
 
 							this.run('name', name);
 						}
@@ -196,6 +204,8 @@
 
 						classFieldCommands.call(this);
 
+						this.parameters = [];
+
 						this.run('name', name);
 						this.run('desc', desc);
 					}
@@ -214,6 +224,8 @@
 
 						classFieldCommands.call(this);
 						this.visibility = 'public';
+
+						this.properties = [];
 
 						this.run('name', name);
 						this.run('desc', desc);
@@ -263,10 +275,9 @@
 				return this;
 			}
 
-			var context = new parser.Context();
-			return buildContext.call(context);
+			return buildContext.call(new base.Context());
 		}
 	});
 
-	return DefaultParser;
+	return DefaultContext;
 });

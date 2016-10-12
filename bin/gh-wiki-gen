@@ -19,7 +19,11 @@ if (options.inputPath)
 if (options.outputPath)
 	options.outputPath = path.resolve(options.outputPath);
 
-options.parser = '../parsers/default';
+if (!options.parser)
+	options.parser = '../parsers/default';
+
+if (!options.generator)
+	options.generator = '../generators/markdown';
 
 var parser = new wg.Parser(options);
 parser.parse();
