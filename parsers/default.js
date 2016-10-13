@@ -53,20 +53,28 @@
 				}
 
 				this.command('namespace', function(name) {
-					return this.appendTo('properties', this.newContext(function() {
-						this.inherit('name', 'desc', 'namespace', 'class', 'function', 'property', 'alias', 'see', 'note');
+					return this.appendTo('properties', this.getContext('properties', function(context) {
+						if (context.type === 'namespace' && context.name === name)
+							return true;
+					}, function() {
+						this.inherit('name', 'desc', 'namespace', 'class', 'function', 'object', 'property', 'alias', 'see', 'note');
 						
+						this.run('name', name);
+
 						this.functions = [];
 						this.properties = [];
-
-						if (name)
-							this.run('name', name);
 					}));
 				});
 
 				this.command('class', function(name, desc) {
-					return this.appendTo('properties', this.newContext(function() {
+					return this.appendTo('properties', this.getContext('properties', function(context) {
+						if (context.type === 'class' && context.name === name)
+							return true;
+					}, function() {
 						this.inherit('name', 'class', 'desc', 'example', 'function', 'alias', 'see', 'note', 'property');
+
+						this.run('name', name);
+						this.run('desc', desc);
 
 						this.functions = [];
 						this.properties = [];
@@ -80,9 +88,6 @@
 							context.type = 'constructor';
 							return context;
 						});
-
-						this.run('name', name);
-						this.run('desc', desc);
 					}));
 				});
 				this.alias('class', 'struct');

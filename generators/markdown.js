@@ -11,10 +11,28 @@
 	MarkdownGenerator.prototype = D.data.extend(Object.create(base.prototype), {
 		createRootBlock: function() {
 			function buildBlock() {
-				var count = 0;
+				function addItemToSidebar(context) {
+					var contextPath = context.getPath(function(context) {
+						if (context.type !== 'namespace' &&
+								context.type !== 'class' &&
+								context.type !== 'function' &&
+								context.type !== 'constructor')
+							return false;
+					}).replace(/^[^:]+:/,'');
+
+
+					var name = D.utils.extract(contextPath, /([^.]+)$/, 1),
+							val = D.get(sidebarItems, contextPath);
+
+					console.log('Item: ', contextPath, name);		
+					if (val === undefined)
+						D.set(sidebarItems, contextPath, name);
+				}
+
+				var sidebarItems = {};
 				this.defaultPageExt = 'md';
 
-				this.command('anchor', function(context) {
+				this.command('anchor', function(context, name) {
 					var a = this.anchor(),
 							currentPage = this.currentPage(),
 							pageName = (currentPage) ? this.pageName(currentPage.context) : undefined;
@@ -24,6 +42,10 @@
 					this.write('.' + this.defaultPageExt);
 					this.write('#' + a.hash);
 					this.write('">');
+
+					if (name)
+						this.write(name);
+
 					this.write('</a>');
 				});
 
@@ -52,6 +74,49 @@
 					this.write(desc.trim().replace(/@@@(\S+)@@@/g, function(match, p) {
 		        return self.referenceURL(p);
 		      }));
+				});
+
+				this.command('property', function(context, prop) {
+					this.write('**');
+          this.write(context.name);
+
+          if (context.default) {
+          	this.write('** (<i>');
+	          this.write(context.default);
+	          this.write('</i>)');
+          }
+          
+          this.write(': ');
+          this.run('desc', context.desc);
+				});
+
+				this.command('object', function(context) {
+					function writeProperties(context) {
+			    	var props = context.properties;
+			    	if (context.hasOwnProperty('properties') && props && props.length > 0) {
+			        for (var i = 0, il = props.length; i < il; i++) {
+			          var prop = props[i];          
+
+			          this.write('\n * ');
+			          this.write(this.newBlock(prop, function() {
+			          	this.run('property');
+			          }));
+			        }
+			      }
+
+			      this.write('\n\n');
+			    }
+
+					if (context.type === 'type' && context.parent.type === 'parameter') {
+						var type = '(Object) parameter';
+						this.run('header', context.parent.name, 3, type);						
+					} else {
+						this.run('header', context.name, 3);
+					}
+
+					this.write('\n');
+
+					writeProperties.call(this, context);
 				});
 
 				this.command('function', function(context) {
@@ -119,7 +184,10 @@
 			              if (type.name.match(/(function|object)/i)) {
 			              	var pageName = this.pageName(type) + '.md';
 			              	this.newPage(pageName, function(context) {
-			              		this.run('function');
+			              		if (type.name.match(/^function$/i))
+			              			this.run('function');
+			              		else
+			              			this.run('object');
 			              	}, type);
 
 			              	var a = this.anchor(type);
@@ -223,6 +291,8 @@
 						return str.replace(/\n/gm, '\n> ');
 					};
 
+					addItemToSidebar(context);
+
 					if (context.type === 'type' && context.parent.type === 'parameter') {
 						var type = '(Function) parameter';
 						this.run('header', context.parent.name, 3, type);						
@@ -300,14 +370,27 @@
 						this.run('header', context.name, 2);
 						this.write('\n');
 
+						this.postProcess = function(str) {
+							return str.trim().replace(/\n/gm, '\n* ');
+						};
+
 						this.each('properties', function(context) {
-							this.run('anchor');
+							this.write('(<i>' + context.type + '</i>) ');
+							this.run('anchor', context.name);
 							this.run(context.type);
+							this.write('\n');
 						});
 					});
 				});
 
 				this.command('global', function(context) {
+					this.newPage('_Sidebar.md', function() {
+						this.toString = function() {
+							console.log(sidebarItems);
+							return 'derp';
+						};
+					}, {});
+
 					this.newPage(function() {
 						this.each('properties', function() {
 							this.run('anchor');
