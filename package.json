@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/th317erd/gh-wiki-gen#readme",
   "dependencies": {
-    "devoir": "^0.1.0"
+    "devoir": "^0.1.5",
+    "janap": "^1.0.3"
   }
 }
