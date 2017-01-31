@@ -135,6 +135,8 @@
 						type = null;
 					}
 
+					console.log('Param: ', type, name, desc);
+
 					var context = this.appendTo('parameters', this.getContext('parameters', function(context) {
 						if (context.type === 'parameter' && context.name === name)
 							return true;
@@ -215,6 +217,7 @@
 						this.run('desc', desc);
 					}
 
+					console.log('Function', name);
 					if (this.hasOwnProperty('type') && this.type === 'type' && (this.name).toLowerCase() === 'function') {
 						this.visibility = 'public';
 						return contextFunc.apply(this, arguments);

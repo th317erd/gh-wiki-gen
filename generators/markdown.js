@@ -24,7 +24,6 @@
 					var name = D.utils.extract(contextPath, /([^.]+)$/, 1),
 							val = D.get(sidebarItems, contextPath);
 
-					console.log('Item: ', contextPath, name);		
 					if (val === undefined)
 						D.set(sidebarItems, contextPath, name);
 				}
@@ -35,11 +34,12 @@
 				this.command('anchor', function(context, name) {
 					var a = this.anchor(),
 							currentPage = this.currentPage(),
-							pageName = (currentPage) ? this.pageName(currentPage.context) : undefined;
+							pageName = (currentPage) ? 1 : undefined;
 
 					this.write('<a href="');
-					this.write(pageName);
-					this.write('.' + this.defaultPageExt);
+					if (pageName instanceof String || typeof pageName === 'string')
+						this.write(pageName);
+					//this.write('.' + this.defaultPageExt);
 					this.write('#' + a.hash);
 					this.write('">');
 
@@ -70,6 +70,9 @@
 				});
 
 				this.command('desc', function(context, desc) {
+					if (!desc)
+						return;
+
 					var self = this;
 					this.write(desc.trim().replace(/@@@(\S+)@@@/g, function(match, p) {
 		        return self.referenceURL(p);
@@ -182,7 +185,7 @@
 			              this.write('</i>) ');
 
 			              if (type.name.match(/(function|object)/i)) {
-			              	var pageName = this.pageName(type) + '.md';
+			              	var pageName = this.pageName(type);
 			              	this.newPage(pageName, function(context) {
 			              		if (type.name.match(/^function$/i))
 			              			this.run('function');
@@ -376,9 +379,40 @@
 
 						this.each('properties', function(context) {
 							this.write('(<i>' + context.type + '</i>) ');
-							this.run('anchor', context.name);
+							
+							if (context.type === 'namespace') {
+								var page = this.pageName(context);
+								this.write('<a href="' + page + '">' + context.name + '</a>');
+							} else {
+								this.run('anchor', context.name);	
+							}
+							
 							this.run(context.type);
 							this.write('\n');
+						});
+
+						this.each('functions', function(context) {
+							var page = this.pageName(context);
+							this.write('(<i>' + context.type + '</i>) ');
+							this.write('<a href="' + page + '">' + context.name + '</a>');
+							this.write('\n');
+						});
+
+						this.each('functions', function(context) {
+							this.newPage(function(context) {
+								if (context.type === 'function' || context.type === 'constructor') {
+									this.run('function', false);
+								} else if (context.type === 'alias') {
+									this.run('alias');
+								}
+
+								this.write('\n---\n');
+							});
+						}, function(a, b) {
+							var x = a.name,
+									y = b.name;
+
+							return (x == y) ? 0 : (x < y) ? -1 : 1;
 						});
 					});
 				});
@@ -386,13 +420,49 @@
 				this.command('global', function(context) {
 					this.newPage('_Sidebar.md', function() {
 						this.toString = function() {
-							console.log(sidebarItems);
-							return 'derp';
+							function dumpLinks(obj, _parents) {
+								function writeLink(type, name, parents) {
+									var listing = parents.concat(name),
+											fullName = listing.join('_').replace(/[\W_]/g,'_'),
+											link = type + '_' + fullName;
+
+									parts.push(new Array(parents.length * 2 + 1).join(' '));
+									parts.push('* [');
+									parts.push(key);
+									parts.push('](');
+									parts.push(link);
+									parts.push(' "');
+									parts.push(key);
+									parts.push('")\n');
+								}
+
+								var keys = Object.keys(obj),
+										parents = _parents || [];
+
+								if (keys.length === 0)
+									return;
+
+								for (var i = 0, il = keys.length; i < il; i++) {
+									var key = keys[i],
+											value = obj[key];
+
+									if (value instanceof String || typeof value === 'string') {
+										writeLink('Function', key, parents);
+									} else if (value instanceof Object) {
+										writeLink('Namespace', key, parents);
+										dumpLinks(value, parents.concat(key));
+									}
+								}
+							}
+
+							var parts = [];
+							dumpLinks(sidebarItems);
+							return parts.join('');
 						};
 					}, {});
 
 					this.newPage(function() {
-						this.each('properties', function() {
+						this.each('properties', function(context) {
 							this.run('anchor');
 						});
 					});
