@@ -1,6 +1,6 @@
 {
   "name": "gh-wiki-gen",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Auto generate documentation for GitHub wiki",
   "main": "index.js",
   "bin": {
