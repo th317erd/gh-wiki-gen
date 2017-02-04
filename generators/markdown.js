@@ -167,7 +167,8 @@
 			        this.write('#### Parameters');
 
 			        for (var i = 0, il = args.length; i < il; i++) {
-			          var arg = args[i];          
+			          var arg = args[i],
+			          		paramContext = arg;          
 
 			          this.write('\n * **');
 			          this.write(arg.name);
@@ -188,20 +189,20 @@
 			              	var pageName = this.pageName(type);
 			              	this.newPage(pageName, function(context) {
 			              		if (type.name.match(/^function$/i))
-			              			this.run('function');
+			              			paramContext.run('function');
 			              		else
-			              			this.run('object');
+			              			paramContext.run('object');
 			              	}, type);
 
 			              	var a = this.anchor(type);
 			              	this.write('<a href="' + pageName + '#' + a.hash + '">&gt;&gt;&gt;</a> ');
 			              }
 
-			              this.run('desc', type.desc);
+			              paramContext.run('desc', type.desc);
 			            }
 			          } else if (arg.desc) {
 			          	this.write('    * ');
-			          	this.run('desc', arg.desc);
+			          	paramContext.run('desc', arg.desc);
 			          }
 			        }
 			      } else {
@@ -221,11 +222,13 @@
 			          this.write('s');
 
 			        for (var i = 0, il = types.length; i < il; i++) {
-			          var type = types[i];
+			          var type = types[i],
+			          		typeContext = type;
+
 			          this.write('\n* (<i>');
 			          this.write(type.name);
 			          this.write('</i>) ');
-			          this.run('desc', type.desc);  
+			          typeContext.run('desc', type.desc);  
 			        }
 			      } else {
 			        this.write('#### Return value');

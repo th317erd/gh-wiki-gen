@@ -23,8 +23,9 @@
 						if (desc)
 							this.run('desc', desc);
 
-						if (this.hasCommand(type.toLowerCase()))
-							this.invoke(type.toLowerCase());
+						var lowerType = type.toLowerCase();
+						if (this.hasCommand(lowerType), ['parameter', 'return', 'property'])
+							this.invoke(lowerType);
 					}));
 				}
 
@@ -134,8 +135,6 @@
 						name = type;
 						type = null;
 					}
-
-					console.log('Param: ', type, name, desc);
 
 					var context = this.appendTo('parameters', this.getContext('parameters', function(context) {
 						if (context.type === 'parameter' && context.name === name)
